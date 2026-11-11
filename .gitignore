@@ -1,0 +1,5 @@
+# Your OAuth token lives here - never commit it.
+src/Secrets.cs
+
+# Build output
+dist/
