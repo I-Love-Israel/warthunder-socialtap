@@ -15,7 +15,7 @@ $out = Join-Path $dist 'WarThunderSocialTap.exe'
 
 $cscArgs = @('/nologo', '/target:winexe', '/optimize+', "/out:$out",
              '/r:System.dll', '/r:System.Core.dll', '/r:System.Drawing.dll',
-             '/r:System.Windows.Forms.dll', '/r:System.Web.Extensions.dll')
+             '/r:System.Windows.Forms.dll', '/r:System.Web.Extensions.dll', '/r:System.Security.dll')
 
 # Use the War Thunder logo from your own game install as the .exe icon (it is not shipped in this repo).
 $icon = @("$env:LOCALAPPDATA\WarThunder\icon.ico",

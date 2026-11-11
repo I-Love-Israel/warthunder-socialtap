@@ -1,5 +1,6 @@
 # Your OAuth token lives here - never commit it.
 src/Secrets.cs
+mac/config.json
 
 # Build output
 dist/

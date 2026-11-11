@@ -17,6 +17,8 @@ A tiny Windows tray app that shows what you're doing in War Thunder as an activi
   it recognises that map in the first seconds of a battle. (Needs replay auto-save, which is on by default.)
 - **Team placement** is not shown – War Thunder does not make the scoreboard available to outside programs.
 
+On a Mac? See [mac/](mac/README.md).
+
 ## Is this safe with BattlEye / Easy Anti-Cheat?
 
 The app only does two things with the game:
@@ -33,25 +35,26 @@ long-standing community tools use.
 
 Requires Windows 10/11. Nothing else to install – it compiles with the C# compiler built into Windows.
 
-1. Copy `src/Secrets.cs.example` to `src/Secrets.cs` and paste your SocialTap OAuth access token into it.
-2. Right-click `install.ps1` → **Run with PowerShell**
+1. Create an OAuth client on SocialTap with:
+   - scope: `integration.status`
+   - callback / redirect URL: `http://127.0.0.1:8765/callback`
+2. Copy `src/Secrets.cs.example` to `src/Secrets.cs` and put the client ID in it.
+3. Right-click `install.ps1` → **Run with PowerShell**
    (or run `powershell -ExecutionPolicy Bypass -File install.ps1`).
+4. Right-click the War Thunder icon in the system tray → **Connect to SocialTap...** and approve
+   access in the browser tab that opens.
 
-That builds the app, installs it to `%LOCALAPPDATA%\Programs\WarThunderSocialTap`, registers it to
-start with Windows, and launches it. Look for the War Thunder icon in the system tray; hover over it
-for the current status, right-click for the log or to exit.
+The install step builds the app, puts it in `%LOCALAPPDATA%\Programs\WarThunderSocialTap`, registers
+it to start with Windows, and launches it. Hover over the tray icon for the current status;
+right-click for the log or to exit.
+
+You only connect once: the login is saved (encrypted for your Windows account) and renewed
+automatically. Until you connect, the app only writes what it *would* publish to its log.
 
 Run `install.ps1` again after changing any setting. Run `uninstall.ps1` to remove everything.
 
-### OAuth scope
-
-The token needs exactly one scope:
-
-```
-integration.status
-```
-
-Without a token the app still runs, but only writes what it *would* publish to its log.
+Prefer not to use the login? Paste an access token with the `integration.status` scope into
+`Secrets.cs` instead.
 
 ## Settings
 
@@ -75,6 +78,7 @@ src/
   BrTable.cs       vehicle → battle rating lookup (public datamine, cached weekly)
   MapLearner.cs    minimap fingerprinting + map names from replays
   SocialTap.cs     SocialTap integration-status API
+  OAuth.cs         "Connect to SocialTap" login (authorization code + PKCE)
   Util.cs          paths, logging, HTTP
   Config.cs        settings
   Secrets.cs.example   template for your token (Secrets.cs itself is git-ignored)
