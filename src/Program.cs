@@ -38,6 +38,7 @@ namespace WarThunderSocialTap
 
         public TrayApp()
         {
+            SocialTap.Init();
             marshal = new Control();
             IntPtr forceHandle = marshal.Handle;
 
@@ -46,6 +47,7 @@ namespace WarThunderSocialTap
             var menu = new ContextMenuStrip();
             menu.Items.Add(statusItem);
             menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add("Connect to SocialTap...", null, delegate { StartConnect(); });
             menu.Items.Add("Open log", null, delegate { OpenPath(Paths.In("app.log")); });
             menu.Items.Add("Open data folder", null, delegate { OpenPath(Paths.DataDir); });
             menu.Items.Add(new ToolStripSeparator());
@@ -60,14 +62,39 @@ namespace WarThunderSocialTap
             worker = new Thread(Run);
             worker.IsBackground = true;
             worker.Start();
+
+            // "WarThunderSocialTap.exe --connect" starts the login right away.
+            foreach (string arg in Environment.GetCommandLineArgs())
+                if (arg == "--connect") StartConnect();
+        }
+
+        void StartConnect()
+        {
+            var t = new Thread(delegate()
+            {
+                string problem = OAuth.Connect();
+                if (problem == null) tracker.ForceRepublish = true;
+                else Log.Write("Login not completed: " + problem);
+                try
+                {
+                    marshal.BeginInvoke((MethodInvoker)delegate
+                    {
+                        tray.ShowBalloonTip(8000, "War Thunder > SocialTap",
+                            problem == null ? "Connected to SocialTap." : problem,
+                            problem == null ? ToolTipIcon.Info : ToolTipIcon.Warning);
+                    });
+                }
+                catch { }
+            });
+            t.IsBackground = true;
+            t.Start();
         }
 
         void Run()
         {
-            Log.Write("App started" + (SocialTap.DryRun ? " (no token set yet - nothing will be sent)" : ""));
+            Log.Write("App started" + (SocialTap.DryRun ? " (not connected to SocialTap yet - nothing will be sent)" : ""));
             BrTable.Load();
             MapLearner.Load();
-            SocialTap.Init();
             while (true)
             {
                 int wait = Config.PollSeconds;

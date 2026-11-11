@@ -37,6 +37,9 @@ namespace WarThunderSocialTap
 
         public string Status = "Starting";
 
+        /// <summary>Set after a new login so the card is sent again straight away.</summary>
+        public volatile bool ForceRepublish;
+
         /// <summary>Runs one cycle. Returns how many seconds to wait before the next one.</summary>
         public int Tick()
         {
@@ -159,6 +162,15 @@ namespace WarThunderSocialTap
 
         void Publish(DateTime now, string title, string subtitle)
         {
+            if (ForceRepublish)
+            {
+                ForceRepublish = false;
+                lastSentKey = null;
+                lastSentAt = DateTime.MinValue;
+                nextAllowed = DateTime.MinValue;
+                publishNote = null;
+            }
+
             if (title == null)
             {
                 if (cardActive)
@@ -167,7 +179,7 @@ namespace WarThunderSocialTap
                     cardActive = false;
                     lastSentKey = null;
                 }
-                publishNote = SocialTap.DryRun ? "no token set" : null;
+                publishNote = SocialTap.DryRun ? "not connected" : null;
                 return;
             }
 
@@ -183,7 +195,7 @@ namespace WarThunderSocialTap
                 cardActive = true;
                 lastSentKey = key;
                 lastSentAt = now;
-                publishNote = SocialTap.DryRun ? "no token set" : null;
+                publishNote = SocialTap.DryRun ? "not connected" : null;
             }
             else if (status == 401 || (status >= 300 && status < 400))
             {
