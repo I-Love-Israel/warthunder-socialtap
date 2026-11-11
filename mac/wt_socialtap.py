@@ -360,7 +360,7 @@ class SocialTap:
 
     def _token_request(self, fields):
         body = urllib.parse.urlencode(fields).encode("ascii")
-        status, resp = http("POST", SOCIALTAP + "/oauth/token", None, body,
+        status, resp = http("POST", SOCIALTAP + "/api/oauth/token", None, body,
                             "application/x-www-form-urlencoded")
         if status != 200:
             return status, None
@@ -396,7 +396,7 @@ class SocialTap:
             return "Port %d is in use by another program. Close it and try again." % CALLBACK_PORT
         srv.listen(5)
         srv.settimeout(1.0)
-        url = SOCIALTAP + "/oauth/authorize?" + urllib.parse.urlencode({
+        url = SOCIALTAP + "/api/oauth/authorize?" + urllib.parse.urlencode({
             "response_type": "code", "client_id": self.client_id, "redirect_uri": REDIRECT_URI,
             "scope": SCOPE, "state": state, "code_challenge": challenge,
             "code_challenge_method": "S256"})
