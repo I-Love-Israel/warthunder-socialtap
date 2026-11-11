@@ -23,19 +23,27 @@ namespace WarThunderSocialTap
         const int Port = 8765;
         const string Scope = "integration.status";
 
-        static int running;
+        static int generation;
+        static readonly object RunLock = new object();
 
-        /// <summary>Returns null on success, otherwise a short message saying what went wrong.</summary>
+        /// <summary>
+        /// Returns null on success, otherwise a short message saying what went wrong
+        /// ("" when this attempt was replaced by a newer one).
+        /// </summary>
         public static string Connect()
         {
-            if (Interlocked.Exchange(ref running, 1) == 1) return "A login is already in progress - check your browser.";
-            try { return Run(); }
-            catch (Exception ex) { Log.Write("Login error: " + ex); return "Login failed: " + ex.Message; }
-            finally { Interlocked.Exchange(ref running, 0); }
+            // Starting again cancels an attempt that is still waiting, so a retry always opens a fresh login.
+            int mine = Interlocked.Increment(ref generation);
+            lock (RunLock)
+            {
+                try { return Run(mine); }
+                catch (Exception ex) { Log.Write("Login error: " + ex); return "Login failed: " + ex.Message; }
+            }
         }
 
-        static string Run()
+        static string Run(int mine)
         {
+            if (generation != mine) return "";
             string clientId = SocialTap.ClientId;
             if (string.IsNullOrEmpty(clientId)) return "No Client ID yet. Put it in src/Secrets.cs and run install.ps1 again.";
 
@@ -51,7 +59,7 @@ namespace WarThunderSocialTap
             string code = null, error = null;
             try
             {
-                string url = SocialTap.BaseUrl + "/oauth/authorize?response_type=code" +
+                string url = SocialTap.BaseUrl + "/api/oauth/authorize?response_type=code" +
                              "&client_id=" + Uri.EscapeDataString(clientId) +
                              "&redirect_uri=" + Uri.EscapeDataString(RedirectUri) +
                              "&scope=" + Uri.EscapeDataString(Scope) +
@@ -65,6 +73,7 @@ namespace WarThunderSocialTap
                 DateTime deadline = DateTime.Now.AddMinutes(5);
                 while (code == null && error == null && DateTime.Now < deadline)
                 {
+                    if (generation != mine) return "";
                     if (!listener.Pending()) { Thread.Sleep(200); continue; }
                     using (TcpClient client = listener.AcceptTcpClient())
                     {
@@ -97,10 +106,10 @@ namespace WarThunderSocialTap
                           "&redirect_uri=" + Uri.EscapeDataString(RedirectUri) +
                           "&client_id=" + Uri.EscapeDataString(clientId) +
                           "&code_verifier=" + verifier;
-            HttpResult r = Http.Send("POST", SocialTap.BaseUrl + "/oauth/token", null, form, "application/x-www-form-urlencoded", 15000);
+            HttpResult r = Http.Send("POST", SocialTap.BaseUrl + "/api/oauth/token", null, form, "application/x-www-form-urlencoded", 15000);
             if (r.Status != 200)
             {
-                Log.Write("Token exchange failed: HTTP " + r.Status);
+                Log.Write("Token exchange failed: HTTP " + r.Status + " " + (r.Body.Length > 200 ? r.Body.Substring(0, 200) : r.Body));
                 return "SocialTap refused the login code (HTTP " + r.Status + ").";
             }
             var d = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(r.Body);

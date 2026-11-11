@@ -112,7 +112,7 @@ namespace WarThunderSocialTap
             if (string.IsNullOrEmpty(rt) || string.IsNullOrEmpty(ClientId)) return false;
             string form = "grant_type=refresh_token&refresh_token=" + Uri.EscapeDataString(rt) +
                           "&client_id=" + Uri.EscapeDataString(ClientId);
-            HttpResult r = Http.Send("POST", BaseUrl + "/oauth/token", null, form,
+            HttpResult r = Http.Send("POST", BaseUrl + "/api/oauth/token", null, form,
                 "application/x-www-form-urlencoded", 15000);
             if (r.Status != 200)
             {

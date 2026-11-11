@@ -73,6 +73,7 @@ namespace WarThunderSocialTap
             var t = new Thread(delegate()
             {
                 string problem = OAuth.Connect();
+                if (problem == "") return; // replaced by a newer login attempt
                 if (problem == null) tracker.ForceRepublish = true;
                 else Log.Write("Login not completed: " + problem);
                 try
